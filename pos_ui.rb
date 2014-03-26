@@ -134,17 +134,21 @@ def transaction(current_cashier)
   while new_product != 'x'
     puts "Select the number of the product you would like to add to this checkout or x to finish"
     new_product = gets.chomp
-    selected_product = Inventory.where({product_id: new_product}).first
-    if selected_product != nil
+    if new_product != 'x'
+      selected_product = Product.where({id: new_product}).first
+      in_stock = Inventory.where({product_id: selected_product.id})
       binding.pry
-      checkouts << Checkout.create({customer_id: current_customer.id, cashier_id: current_cashier.id, product_id: selected_product.id} )
+
+      checkouts << in_stock.select(:inventory_id).distinct
+
+      Checkout.create({customer_id: current_customer.id, cashier_id: current_cashier.id, inventory_id: in_stock.id} )
       puts "#{selected_product.name} has been added to your cart!"
 
     elsif new_product == 'x'
       puts "Your total:\t\t$#{checkout_total(current_customer)}"
       remove_inventory(checkouts)
     else
-      puts "Selected product not avalible"
+      puts "Selected product not available"
     end
 
   end
@@ -155,14 +159,18 @@ def checkout_total(current_customer)
   total = 0
   puts "Your receipt"
   checkouts.each do |checkout|
-    puts "#{checkout.product.name}:\t\t$#{checkout.product.price}"
-    total += checkout.product.price
+    # binding.pry
+    puts "#{checkout.inventory.product.name}:\t\t$#{checkout.inventory.product.price}"
+    total += checkout.inventory.product.price
   end
   return total
 end
 
 def remove_inventory(checkouts)
-  Inventory.where
+  checkouts.each do |checkout|
+    binding.pry
+    Inventory.where({ id: checkout.inventory_id}).destroy_all
+  end
 end
 
 def list_in_stock
